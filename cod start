@@ -1,0 +1,9 @@
+import telebot
+
+bot = telebot.TeleBot("8400513369:AAHw9XunlYxWvNd6pXGh29snB1sYA9MamWE")
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.send_message(message.chat.id, 'Я на связи. Напиши мне что-нибудь, и я отвечу)')
+
+bot.polling(none_stop=True)
