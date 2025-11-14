@@ -1,0 +1,60 @@
+import requests
+import telebot
+from bs4 import BeautifulSoup
+from datetime import datetime
+
+bot = telebot.TeleBot("8400513369:AAHw9XunlYxWvNd6pXGh29snB1sYA9MamWE")
+
+@bot.message_handler(commands=['daily_news'])
+def daily_news(message):
+    url = "https://eadaily.com/ru/news"
+    response = requests.get(url, timeout=10)
+
+    if response.status_code != 200:
+        bot.send_message(message.chat.id, "Ошибка подключения к сайту.")
+        return
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    today_path = datetime.now().strftime("%Y/%m/%d")
+    pattern = f"/ru/news/{today_path}/"
+
+    news = []
+    seen_urls = set()
+
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+
+        if pattern not in href:
+            continue
+
+        title = a.get_text(strip=True)
+        if not title:
+            continue
+
+        full_url = href
+        if not full_url.startswith("http"):
+            full_url = "https://eadaily.com" + full_url
+
+        if full_url in seen_urls:
+            continue
+        seen_urls.add(full_url)
+
+        news.append({"title": title, "url": full_url})
+
+    if not news:
+        bot.send_message(message.chat.id, "Новостей за сегодня не найдено( ")
+        return
+
+    today_str = datetime.now().strftime("%d.%m.%Y")
+    text = f"Новости за {today_str}:\n\n"
+
+    for item in news:
+        text += f"• {item['title']}\n{item['url']}\n\n"
+
+    MAX_LEN = 4000
+    for i in range(0, len(text), MAX_LEN):
+        bot.send_message(message.chat.id, text[i:i+MAX_LEN])
+
+if __name__ == "__main__":
+    bot.polling(none_stop=True)
